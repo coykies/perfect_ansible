@@ -49,4 +49,4 @@
           - openssl
           - nodejs
           - npm
-        state: present
+        state: latest
