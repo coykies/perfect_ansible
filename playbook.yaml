@@ -1,0 +1,9 @@
+---
+- name: Config Deb11
+  hosts: all
+  become: yes
+
+  tasks: 
+    - name: Set timezone +0 (UTC)
+      ansible.builtin.timezone: 
+        name: "UTC"
