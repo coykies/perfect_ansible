@@ -1,0 +1,51 @@
+---
+- name: Config Deb11
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Set timezone +0 (UTC)
+      ansible.builtin.timezone:
+        name: "UTC"
+    - name: Remove user debian
+      ansible.builtin.user:
+        name: debian
+        state: absent
+        remove: true
+    - name: Install list of packages
+      ansible.builtin.apt:
+        pkg:
+          - libfreetype6
+          - libfreetype6-dev
+          - zlib1g
+          - zlib1g-dev
+          - libxml2
+          - libxml2-dev
+          - libxslt1-dev
+          - libxslt1.1
+          - gcc
+          - curl
+          - make
+          - libcurl4-openssl-dev
+          - libssl-dev
+          - mc
+          - wget
+          - aptitude
+          - unzip
+          - htop
+          - nload
+          - libffi-dev
+          - libmariadbclient-dev
+          - gnupg2
+          - pkg-config
+          - tcl
+          - git
+          - sendmail
+          - openssl
+          - python-minimal
+          - python-setuptools
+          - screen
+          - ethtool
+          - openssl
+          - nodejs
+          - npm
