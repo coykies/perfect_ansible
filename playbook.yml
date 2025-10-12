@@ -50,3 +50,7 @@
           - nodejs
           - npm
         state: latest
+    - name: install nginx latest version
+      ansible.builtin.apt:
+        name: nginx
+        state: latest
