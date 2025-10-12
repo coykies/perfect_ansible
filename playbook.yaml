@@ -1,9 +1,14 @@
 ---
 - name: Config Deb11
   hosts: all
-  become: yes
+  become: true
 
-  tasks: 
+  tasks:
     - name: Set timezone +0 (UTC)
-      ansible.builtin.timezone: 
+      ansible.builtin.timezone:
         name: "UTC"
+    - name: Remove user debian
+      ansible.builtin.user:
+        name: debian
+        state: absent
+        remove: true
