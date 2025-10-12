@@ -12,6 +12,9 @@
         name: debian
         state: absent
         remove: true
+    - name: update apt cache
+      ansible.builtin.at:
+        update_cache: true
     - name: Install list of packages
       ansible.builtin.apt:
         pkg:
@@ -50,6 +53,7 @@
           - nodejs
           - npm
         state: latest
+        update_cache: true
     - name: install nginx latest version
       ansible.builtin.apt:
         name: nginx
