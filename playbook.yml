@@ -58,9 +58,9 @@
       ansible.builtin.apt:
         name: nginx
         state: latest
-    - name: install reqired depend for mysql 
-      ansible.bultin.apt: 
-        name: 
+    - name: install reqired depend for mysql
+      ansible.builtin.apt:
+        name:
           - lsb-release
         state: present
         update_cache: true
@@ -76,11 +76,11 @@
     - name: update apt cach after add repo
       ansible.builtin.apt:
         update_cache: true
-    - name: install mysql server 
+    - name: install mysql server
       ansible.builtin.apt:
         name: mysql-server
         state: present
-    - name: check my sql sevice 
+    - name: check my sql sevice
       ansible.builtin.service:
         name: mysql
         state: started
