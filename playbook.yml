@@ -6,7 +6,7 @@
   tasks:
     - name: Set timezone +0 (UTC)
       ansible.builtin.timezone:
-        name: "UTC"
+        name: Etc/UTC
     - name: Remove user debian
       ansible.builtin.user:
         name: debian
