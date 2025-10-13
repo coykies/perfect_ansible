@@ -38,14 +38,17 @@
           - htop
           - nload
           - libffi-dev
-          - libmariadbclient-dev
+          - libmariadb-dev
+          - default-libmysqlclient-dev
+          - mariadb-client
           - gnupg2
           - pkg-config
           - tcl
           - git
           - sendmail
           - openssl
-          - python-minimal
+          - python3
+          - python3-pip
           - python-setuptools
           - screen
           - ethtool
