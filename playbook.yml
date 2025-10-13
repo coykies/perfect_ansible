@@ -13,7 +13,7 @@
         state: absent
         remove: true
     - name: update apt cache
-      ansible.builtin.at:
+      ansible.builtin.apt:
         update_cache: true
     - name: Install list of packages
       ansible.builtin.apt:
