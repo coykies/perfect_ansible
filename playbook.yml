@@ -2,6 +2,8 @@
 - name: Config Deb11
   hosts: all
   become: true
+  vars_files:
+    - secrets.yml
 
   tasks:
     - name: Set timezone +0 (UTC)
@@ -64,39 +66,58 @@
     - name: install reqired depend for mysql
       ansible.builtin.apt:
         name:
-          - lsb-release
+          - debconf-utils
         state: present
         update_cache: true
-    - name: add GPG key mysql apt repo
-      ansible.builtin.apt_key:
-        url: https://repo.mysql.com/RPM-GPG-KEY-mysql-2022
-        state: present
-    - name: add mysql apt repo
-      ansible.builtin.apt_repository:
-        repo: "deb http://repo.mysql.com/apt/debian/ {{ ansible_lsb.codename }} mysql-apt-config"
-        state: present
-        filename: mysql.list
-    - name: update apt cach after add repo
-      ansible.builtin.apt:
-        update_cache: true
-    - name: install mysql server
-      ansible.builtin.apt:
+    - name: download config package mysql
+      ansible.builtin.command: >
+        curl -L -o /tmp/mysql-apt-config.deb
+        https://dev.mysql.com/get/mysql-apt-config_0.8.28-1_all.deb
+      args:
+        creates: /tmp/mysql-apt-config.deb
+    - name: configure mysql repo
+      ansible.builtin.shell: |
+        echo "mysql-apt-config mysql-apt-config/select-server select mysql-5.7" | debconf-set-selections
+        echo "mysql-apt-config mysql-apt-config/select-product select Ok" | debconf-set-selections
+        DEBIAN_FRONTEND=noninteractive dpkg -i /tmp/mysql-apt-config.deb
+      args:
+        executable: /bin/bash
+    - name: set mysql root password
+      ansible.builtin.debconf:
         name: mysql-server
+        question: mysql-server/root_password
+        value: "{{ mysql_root_password }}"
+        vtype: password
+    - name: confirm mysql root password
+      ansible.builtin.debconf:
+        name: mysql-server
+        question: mysql-server/root_password_again
+        value: "{{ mysql_root_password }}"
+        vtype: password
+    - name: install mysql 5.7 server and client
+      ansible.builtin.apt:
+        name:
+          - mysql-server
+          - mysql-client
         state: present
-    - name: check my sql sevice
-      ansible.builtin.service:
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+    - name: check mysql sevice
+      ansible.builtin.systemd:
         name: mysql
         state: started
         enabled: true
-    - name: set root pass
-      ansible.builtin.mysql_user:
-        name: root
-        host: "{{ item }}"
-        password: "{{ mysql_root_password }}"
-        login_unix_socket: /var/run/mysld/mysqld.sock
-        state: present
-        check_implicit_admin: true
-      loop:
-        - localhost
-        - 127.0.0.1
-        - '::1'
+    - name: test mysql connect
+      ansible.builtin.shell: |
+        mysql -u root -p"{{ mysql_root_password }}" -e "SELECT VERSION():"
+      args:
+        executable: /bin/bash
+      register: mysql_test
+      changed_when: false
+    - name: succes message
+      ansible.builtin.debug:
+        msg: "✅ MySQL {{ mysql_test.stdout }} installed successfull!!"
+    - name: clean up tmp file
+      ansible.builtin.file:
+        path: /tmp/mysql-apt-config.deb
+        state: absent
