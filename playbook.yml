@@ -310,3 +310,30 @@
         owner: deploy
         group: deploy
         state: directory
+    - name: create projects_conf directory
+      file:
+        path: /etc/nginx/projects_conf
+        state: directory
+        mode: '0755'
+    - name: create projects directory
+      file:
+        path: /etc/nginx/projects
+        state: directory
+        owner: deploy
+        group: deploy
+        mode: '0777'
+    - name: create panels directory
+      file:
+        path: /etc/nginx/projects/panels
+        state: directory
+        owner: deploy
+        group: deploy
+        mode: '0777'
+    - name: create GeoIP directory
+      file:
+        path: /var/www/server/frontend/shared/runtime/GeoIP
+        state: directory
+        owner: deploy
+        group: deploy
+        mode: '0755'
+        recurse: true
