@@ -121,3 +121,55 @@
       ansible.builtin.file:
         path: /tmp/mysql-apt-config.deb
         state: absent
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+    - name: install build py depend
+      ansible.builtin.apt:
+        name:
+          - build-essential
+          - wget
+          - libssl-dev
+          - zlib1g-dev
+          - libbz2-dev
+          - libreadline-dev
+          - libsqlite3-dev
+          - libffi-dev
+          - libncurses5-dev
+          - libgdbm-dev
+          - liblzma-dev
+          - tk-dev
+          - libcurl4-openssl-dev
+          - default-libmysqlclient-dev
+          - pkg-config
+          - ca-certificates
+        state: present
+    - name: Ensure source directory exists
+      ansible.builtin.file:
+        path: /usr/local/src
+        state: directory
+        mode: "0755"
+    - name: Download Python 3.9.6 source
+      ansible.builtin.get_url:
+        url: https://www.python.org/ftp/python/3.9.6/Python-3.9.6.tgz
+        dest: /usr/local/src/Python-3.9.6.tgz
+        mode: "0644"
+        use_proxy: false
+        timeout: 120
+    - name: Extract Python source
+      ansible.builtin.unarchive:
+        src: /usr/local/src/Python-3.9.6.tgz
+        dest: /usr/local/src/
+        remote_src: true
+    - name: Configure Py
+      ansible.builtin.command:
+        cmd: ./configure --prefix=/opt/python3
+        chdir: /usr/local/src/Python-3.9.6
+      args:
+        creates: /usr/local/src/Python-3.9.6/Makefile
+    - name: Build Python
+      ansible.builtin.command:
+        cmd: make -j 2
+        chdir: /usr/local/src/Python-3.9.6
+      args:
+        creates: /usr/local/src/Python-3.9.6/python
