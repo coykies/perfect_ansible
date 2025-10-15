@@ -268,3 +268,45 @@
         - { user: 'root', type: 'soft', value: '6500535' }
         - { user: '\*', type: 'soft', value: '40000000' }
         - { user: '\*', type: 'hard', value: '40000000' }
+    - name: create deploy user
+      user:
+        name: deploy
+        shell: /bin/bash
+        create_home: true
+        state: present
+    - name: create .ssh directory
+      file:
+        path: /home/deploy/.ssh
+        state: directory
+        owner: deploy
+        group: deploy
+        mode: '0700'
+    - name: add public key to authorized_keys
+      lineinfile:
+        path: /home/deploy/.ssh/authorized_keys
+        line: "{{ dev_id_rsa_pub }}"
+        state: present
+        owner: deploy
+        group: deploy
+        mode: '600'
+        create: true
+    - name: set private key from vault
+      copy:
+        content: "{{ dev_id_rsa }}"
+        dest: /home/deploy/.ssh/id_rsa
+        owner: deploy
+        group: deploy
+        mode: '0600'
+    - name: set public key from vault
+      copy:
+        content: "{{ dev_id_rsa_pub }}"
+        dest: /home/deploy/.ssh/id_rsa.pub
+        owner: deploy
+        group: deploy
+        mode: '0644'
+    - name: Set proper ownership on home directory
+      file:
+        path: /home/deploy
+        owner: deploy
+        group: deploy
+        state: directory
