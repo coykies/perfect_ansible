@@ -337,3 +337,47 @@
         group: deploy
         mode: '0755'
         recurse: true
+    - name: check env
+      shell: |
+        if [ -f /.dockerenv ]; then echo "docker";
+        elif command -v systemctl >/dev/null 2>&1; then echo "systemd";
+        else echo "other"; fi
+      register: env_type
+      changed_when: false
+    - name: create default.conf placeholder
+      copy:
+        dest: /etc/nginx/default.conf
+        content: "# Placeholder file - update with actual configuration"
+        owner: root
+        group: root
+        mode: '0644'
+      ignore_errors: true
+    - name: deploy nginx.conf
+      copy:
+        src: nginx.conf
+        dest: /etc/nginx/nginx.conf
+        owner: root
+        group: root
+        mode: '0644'
+        backup: true
+      register: config_deployed
+    - name: validate configuration
+      command: nginx -t
+      register: config_test
+      changed_when: false
+      when: config_deployed.changed
+    - name: manage nginx service
+      when:
+        - config_deployed.changed
+        - config_test.rc == 0
+      block:
+        - name: reload systemd nginx
+          systemd:
+            name: nginx
+            state: reloaded
+          when: env_type.stdout == "systemd"
+        - name: check and reload docker nginx
+          when: env_type.stdout == "docker"
+          block:
+            - name: check if nginx is running in Docker
+              shell: pgrep nginx >/dev/null 2>&1 && echo "running" || echo "stopped"
