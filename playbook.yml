@@ -256,3 +256,15 @@
         option: DefaultLimitNOFILE
         value: 6500535
         backup: true
+    - name: set limits with value check
+      lineinfile:
+        path: /etc/security/limits.conf
+        regexp: '^{{ item.user }}\s+{{ item.type }}\s+nofile\s+.*$'
+        line: '{{ item.user }} {{ item.type }} nofile {{ item.value }}'
+        state: present
+        backup: true
+      loop:
+        - { user: 'root', type: 'hard', value: '6500536' }
+        - { user: 'root', type: 'soft', value: '6500535' }
+        - { user: '\*', type: 'soft', value: '40000000' }
+        - { user: '\*', type: 'hard', value: '40000000' }
