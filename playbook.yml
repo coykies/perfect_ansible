@@ -381,3 +381,27 @@
           block:
             - name: check if nginx is running in Docker
               shell: pgrep nginx >/dev/null 2>&1 && echo "running" || echo "stopped"
+    - name: logrotate is installed
+      apt:
+        name: logrotate
+        state: present
+    - name: Create logrotate configuration for Nginx
+      copy:
+        dest: /etc/logrotate.d/nginx
+        content: |
+          /var/log/nginx/*.log {
+              daily
+              missingok
+              rotate 30
+              compress
+              delaycompress
+              notifempty
+              create 0640 www-data adm
+              sharedscripts
+              postrotate
+                  [ -s /run/nginx.pid ] && kill -USR1 `cat /run/nginx.pid`
+              endscript
+          }
+        owner: root
+        group: root
+        mode: '0644'
