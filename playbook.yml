@@ -179,3 +179,42 @@
         chdir: /usr/local/src/Python-3.9.6
       args:
         creates: /opt/python3/bin/python3.9
+    - name: install PHP prereq
+      ansible.builtin.apt:
+        name:
+          - php
+          - php-cli
+          - php-curl
+          - php-zip
+          - php-xml
+          - php-json
+          - php-mbstring
+          - curl
+        state: present
+        update_cache: true
+    - name: Check  Composer is already
+      ansible.builtin.stat:
+        path: /usr/local/bin/composer
+      register: composer_binary
+    - name: Download latest Composer installer
+      ansible.builtin.get_url:
+        url: https://getcomposer.org/installer
+        dest: /tmp/composer-setup.php
+        force: true
+    - name: Install or Update Composer
+      ansible.builtin.command: >
+        php /tmp/composer-setup.php
+        --install-dir=/usr/local/bin
+        --filename=composer
+      args:
+        removes: /tmp/composer-setup.php
+    - name: Set permissions
+      ansible.builtin.file:
+        path: /usr/local/bin/composer
+        mode: '0755'
+        owner: root
+        group: root
+    - name: verify new Composer version
+      ansible.builtin.command: composer --version
+      register: new_composer_version
+      changed_when: false
