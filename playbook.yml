@@ -245,3 +245,10 @@
         reload: false
         ignoreerrors: true
       register: fs_file_max_result
+    - name: configure DefaultLimitNOFILE in system.conf
+      ini_file:
+        path: /etc/systemd/system.conf
+        section: Manager
+        option: DefaultLimitNOFILE
+        value: 6500535
+        backup: true
