@@ -173,3 +173,9 @@
         chdir: /usr/local/src/Python-3.9.6
       args:
         creates: /usr/local/src/Python-3.9.6/python
+    - name: Install Python
+      ansible.builtin.command:
+        cmd: make install
+        chdir: /usr/local/src/Python-3.9.6
+      args:
+        creates: /opt/python3/bin/python3.9
