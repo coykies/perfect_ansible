@@ -218,3 +218,30 @@
       ansible.builtin.command: composer --version
       register: new_composer_version
       changed_when: false
+    - name: set net.ipv4.ip_local_port_range
+      ansible.builtin.sysctl:
+        name: net.ipv4.ip_local_port_range
+        value: "1024 65535"
+        state: present
+        sysctl_file: /etc/sysctl.d/99-custom.conf
+        reload: false
+        ignoreerrors: true
+      register: net_param_result
+    - name: Set fs.nr_open
+      ansible.builtin.sysctl:
+        name: fs.nr_open
+        value: "2000000"
+        state: present
+        sysctl_file: /etc/sysctl.d/99-custom.conf
+        reload: false
+        ignoreerrors: true
+      register: fs_nr_open_result
+    - name: Set fs.file-max
+      ansible.builtin.sysctl:
+        name: fs.file-max
+        value: "5000000"
+        state: present
+        sysctl_file: /etc/sysctl.d/99-custom.conf
+        reload: false
+        ignoreerrors: true
+      register: fs_file_max_result
