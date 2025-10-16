@@ -17,6 +17,7 @@
     - name: update apt cache
       ansible.builtin.apt:
         update_cache: true
+        cache_valid_time: 3600
     - name: check env
       shell: |
         if [ -f /.dockerenv ]; then echo "docker";
@@ -53,44 +54,41 @@
           - git
           - sendmail
           - openssl
-          - python3
-          - python3-pip
-          - python-setuptools
+          - python3-minimal
+          - python3-setuptools
           - screen
           - ethtool
           - openssl
           - nodejs
           - npm
         state: latest
-        update_cache: true
     - name: install nginx latest version
-      ansible.builtin.apt:
+      apt:
         name: nginx
         state: latest
-    - name: install reqired depend for mysql 
+    - name: install reqired depend for mysql
       ansible.builtin.apt:
         name:
-          - wget
-          - gnupg
           - lsb-release
         state: present
         update_cache: true
         cache_valid_time: 3600
     - name: download mysql-apt-config
-      get_url:
-        url: "https://dev.mysql.com/get/mysql-apt-config_0.8.18-1_all.deb"
+      get_url: 
+        url: "http://dev.mysql.com/get/mysql-apt-config_0.8.18-1_all.deb"
         dest: /tmp/mysql-apt-config_0.8.18-1_all.deb
         mode: '0644'
         headers:
           User-Agent: "Wget/1.21"
       register: download_mysql_config
+      ignore_errors: true
     - name: install mysql-apt-config with interactive responses
       command: dpkg -i /tmp/mysql-apt-config_0.8.18-1_all.deb
       args:
         stdin: "1\n1\n1\n4\n"
       when: download_mysql_config.changed
     - name: import MySQL GPG key
-      command: apt-key adv --keyserver keyserver.ubuntu.com --recv-keys B7B3B788A8D3785C 
+      command: apt-key adv --keyserver keyserver.ubuntu.com --recv-keys B7B3B788A8D3785C
     - name: update package cache
       command: apt update
     - name: set mysql password
@@ -122,33 +120,23 @@
         timeout: 30
     - name: Verify MySQL installation
       shell: |
-        mysql -u root -p"{{ mysql_root_password }}" -e "SELECT 1;" 2>/dev/null && echo "MySQL is working" || echo "MySQL is not working"
+        mysql -u root -p"{{ mysql_root_password }}" -e "SELECT 1;" 2>/dev/null | grep -q "1" && echo "MySQL is working" || echo "MySQL is not working"
       register: mysql_check
       changed_when: false
     - name: Display MySQL status
       debug:
         msg: "{{ mysql_check.stdout }}"
-    - name: Update apt cache
-      ansible.builtin.apt:
-        update_cache: true
     - name: install build py depend
       ansible.builtin.apt:
         name:
           - build-essential
-          - wget
-          - libssl-dev
-          - zlib1g-dev
           - libbz2-dev
           - libreadline-dev
           - libsqlite3-dev
-          - libffi-dev
           - libncurses5-dev
           - libgdbm-dev
           - liblzma-dev
           - tk-dev
-          - libcurl4-openssl-dev
-          - default-libmysqlclient-dev
-          - pkg-config
           - ca-certificates
         state: present
     - name: Ensure source directory exists
@@ -196,7 +184,6 @@
           - php-xml
           - php-json
           - php-mbstring
-          - curl
         state: present
         update_cache: true
     - name: Check  Composer is already
@@ -413,3 +400,4 @@
         owner: root
         group: root
         mode: '0644'
+
