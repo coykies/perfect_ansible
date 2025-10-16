@@ -400,3 +400,11 @@
         owner: root
         group: root
         mode: '0644'
+    - name: reboot for VM/server
+      ansible.builtin.reboot:
+        msg: "System reboot"
+      when: env_type.stdout == "systemd"
+    - name: restart for Docker container
+      shell: |
+        echo "Restart container manually: docker restart {{ ansible_hostname }}"
+      when: env_type.stdout == "docker"
