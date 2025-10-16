@@ -1,15 +1,15 @@
 ---
-- name: Config Deb11
+- name: config Deb11
   hosts: all
   become: true
   vars_files:
     - secrets.yml
 
   tasks:
-    - name: Set timezone +0 (UTC)
+    - name: set timezone +0 (UTC)
       ansible.builtin.timezone:
         name: Etc/UTC
-    - name: Remove user debian
+    - name: remove user debian
       ansible.builtin.user:
         name: debian
         state: absent
@@ -25,7 +25,7 @@
         else echo "other"; fi
       register: env_type
       changed_when: false
-    - name: Install list of packages
+    - name: install list of packages
       ansible.builtin.apt:
         pkg:
           - libfreetype6
@@ -99,31 +99,31 @@
       command: apt install -y mysql-community-server
       environment:
         DEBIAN_FRONTEND: noninteractive
-    - name: Start MySQL in Docker environment
+    - name: start MySQL in Docker environment
       shell: |
         mysqld_safe --user=mysql &
         sleep 10
       async: 30
       poll: 0
       when: env_type.stdout == "docker"
-    - name: Start MySQL in Native environment
+    - name: start MySQL in Native environment
       systemd:
         name: mysql
         state: started
         enabled: true
       when: env_type.stdout == "systemd"
-    - name: Wait for MySQL to be ready
+    - name: wait for MySQL to be ready
       wait_for:
         port: 3306
         host: 127.0.0.1
         delay: 5
         timeout: 30
-    - name: Verify MySQL installation
+    - name: verify MySQL installation
       shell: |
         mysql -u root -p"{{ mysql_root_password }}" -e "SELECT 1;" 2>/dev/null | grep -q "1" && echo "MySQL is working" || echo "MySQL is not working"
       register: mysql_check
       changed_when: false
-    - name: Display MySQL status
+    - name: display MySQL status
       debug:
         msg: "{{ mysql_check.stdout }}"
     - name: install build py depend
@@ -139,36 +139,36 @@
           - tk-dev
           - ca-certificates
         state: present
-    - name: Ensure source directory exists
+    - name: ensure source directory exists
       ansible.builtin.file:
         path: /usr/local/src
         state: directory
         mode: "0755"
-    - name: Download Python 3.9.6 source
+    - name: download Python 3.9.6 source
       ansible.builtin.get_url:
         url: https://www.python.org/ftp/python/3.9.6/Python-3.9.6.tgz
         dest: /usr/local/src/Python-3.9.6.tgz
         mode: "0644"
         use_proxy: false
         timeout: 120
-    - name: Extract Python source
+    - name: extract Python source
       ansible.builtin.unarchive:
         src: /usr/local/src/Python-3.9.6.tgz
         dest: /usr/local/src/
         remote_src: true
-    - name: Configure Py
+    - name: configure Py
       ansible.builtin.command:
         cmd: ./configure --prefix=/opt/python3
         chdir: /usr/local/src/Python-3.9.6
       args:
         creates: /usr/local/src/Python-3.9.6/Makefile
-    - name: Build Python
+    - name: build Python
       ansible.builtin.command:
         cmd: make -j 2
         chdir: /usr/local/src/Python-3.9.6
       args:
         creates: /usr/local/src/Python-3.9.6/python
-    - name: Install Python
+    - name: install Python
       ansible.builtin.command:
         cmd: make install
         chdir: /usr/local/src/Python-3.9.6
@@ -186,11 +186,11 @@
           - php-mbstring
         state: present
         update_cache: true
-    - name: Check  Composer is already
+    - name: check  Composer is already
       ansible.builtin.stat:
         path: /usr/local/bin/composer
       register: composer_binary
-    - name: Download latest Composer installer
+    - name: download latest Composer installer
       ansible.builtin.get_url:
         url: https://getcomposer.org/installer
         dest: /tmp/composer-setup.php
@@ -201,12 +201,12 @@
         --install-dir=/usr/local/bin
         --filename=composer
       when: not composer_binary.stat.exists
-    - name: Clean up installer
+    - name: clean up installer
       ansible.builtin.file:
         path: /tmp/composer-setup.php
         state: absent
       when: not composer_binary.stat.exists
-    - name: Set permissions
+    - name: set permissions
       ansible.builtin.file:
         path: /usr/local/bin/composer
         mode: '0755'
@@ -225,7 +225,7 @@
         reload: false
         ignoreerrors: true
       register: net_param_result
-    - name: Set fs.nr_open
+    - name: set fs.nr_open
       ansible.builtin.sysctl:
         name: fs.nr_open
         value: "2000000"
@@ -234,7 +234,7 @@
         reload: false
         ignoreerrors: true
       register: fs_nr_open_result
-    - name: Set fs.file-max
+    - name: set fs.file-max
       ansible.builtin.sysctl:
         name: fs.file-max
         value: "5000000"
@@ -380,7 +380,7 @@
       apt:
         name: logrotate
         state: present
-    - name: Create logrotate configuration for Nginx
+    - name: create logrotate configuration for Nginx
       copy:
         dest: /etc/logrotate.d/nginx
         content: |
@@ -400,4 +400,3 @@
         owner: root
         group: root
         mode: '0644'
-
