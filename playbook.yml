@@ -17,6 +17,13 @@
     - name: update apt cache
       ansible.builtin.apt:
         update_cache: true
+    - name: check env
+      shell: |
+        if [ -f /.dockerenv ]; then echo "docker";
+        elif command -v systemctl >/dev/null 2>&1; then echo "systemd";
+        else echo "other"; fi
+      register: env_type
+      changed_when: false
     - name: Install list of packages
       ansible.builtin.apt:
         pkg:
@@ -40,9 +47,6 @@
           - htop
           - nload
           - libffi-dev
-          - libmariadb-dev
-          - default-libmysqlclient-dev
-          - mariadb-client
           - gnupg2
           - pkg-config
           - tcl
@@ -63,64 +67,67 @@
       ansible.builtin.apt:
         name: nginx
         state: latest
-    - name: install reqired depend for mysql
+    - name: install reqired depend for mysql 
       ansible.builtin.apt:
         name:
-          - debconf-utils
+          - wget
+          - gnupg
+          - lsb-release
         state: present
         update_cache: true
-    - name: download config package mysql
-      ansible.builtin.command: >
-        curl -L -o /tmp/mysql-apt-config.deb
-        https://dev.mysql.com/get/mysql-apt-config_0.8.28-1_all.deb
+        cache_valid_time: 3600
+    - name: download mysql-apt-config
+      get_url:
+        url: "https://dev.mysql.com/get/mysql-apt-config_0.8.18-1_all.deb"
+        dest: /tmp/mysql-apt-config_0.8.18-1_all.deb
+        mode: '0644'
+        headers:
+          User-Agent: "Wget/1.21"
+      register: download_mysql_config
+    - name: install mysql-apt-config with interactive responses
+      command: dpkg -i /tmp/mysql-apt-config_0.8.18-1_all.deb
       args:
-        creates: /tmp/mysql-apt-config.deb
-    - name: configure mysql repo
-      ansible.builtin.shell: |
-        echo "mysql-apt-config mysql-apt-config/select-server select mysql-5.7" | debconf-set-selections
-        echo "mysql-apt-config mysql-apt-config/select-product select Ok" | debconf-set-selections
-        DEBIAN_FRONTEND=noninteractive dpkg -i /tmp/mysql-apt-config.deb
-      args:
-        executable: /bin/bash
-    - name: set mysql root password
-      ansible.builtin.debconf:
-        name: mysql-server
-        question: mysql-server/root_password
-        value: "{{ mysql_root_password }}"
-        vtype: password
-    - name: confirm mysql root password
-      ansible.builtin.debconf:
-        name: mysql-server
-        question: mysql-server/root_password_again
-        value: "{{ mysql_root_password }}"
-        vtype: password
-    - name: install mysql 5.7 server and client
-      ansible.builtin.apt:
-        name:
-          - mysql-server
-          - mysql-client
-        state: present
+        stdin: "1\n1\n1\n4\n"
+      when: download_mysql_config.changed
+    - name: import MySQL GPG key
+      command: apt-key adv --keyserver keyserver.ubuntu.com --recv-keys B7B3B788A8D3785C 
+    - name: update package cache
+      command: apt update
+    - name: set mysql password
+      shell: |
+        echo "mysql-community-server mysql-community-server/root-pass password {{ mysql_root_password }}" | debconf-set-selections
+        echo "mysql-community-server mysql-community-server/re-root-pass password {{ mysql_root_password }}" | debconf-set-selections
+    - name: install mysql-community-server
+      command: apt install -y mysql-community-server
       environment:
         DEBIAN_FRONTEND: noninteractive
-    - name: check mysql sevice
-      ansible.builtin.systemd:
+    - name: Start MySQL in Docker environment
+      shell: |
+        mysqld_safe --user=mysql &
+        sleep 10
+      async: 30
+      poll: 0
+      when: env_type.stdout == "docker"
+    - name: Start MySQL in Native environment
+      systemd:
         name: mysql
         state: started
         enabled: true
-    - name: test mysql connect
-      ansible.builtin.shell: |
-        mysql -u root -p"{{ mysql_root_password }}" -e "SELECT VERSION():"
-      args:
-        executable: /bin/bash
-      register: mysql_test
+      when: env_type.stdout == "systemd"
+    - name: Wait for MySQL to be ready
+      wait_for:
+        port: 3306
+        host: 127.0.0.1
+        delay: 5
+        timeout: 30
+    - name: Verify MySQL installation
+      shell: |
+        mysql -u root -p"{{ mysql_root_password }}" -e "SELECT 1;" 2>/dev/null && echo "MySQL is working" || echo "MySQL is not working"
+      register: mysql_check
       changed_when: false
-    - name: succes message
-      ansible.builtin.debug:
-        msg: "✅ MySQL {{ mysql_test.stdout }} installed successfull!!"
-    - name: clean up tmp file
-      ansible.builtin.file:
-        path: /tmp/mysql-apt-config.deb
-        state: absent
+    - name: Display MySQL status
+      debug:
+        msg: "{{ mysql_check.stdout }}"
     - name: Update apt cache
       ansible.builtin.apt:
         update_cache: true
@@ -337,13 +344,6 @@
         group: deploy
         mode: '0755'
         recurse: true
-    - name: check env
-      shell: |
-        if [ -f /.dockerenv ]; then echo "docker";
-        elif command -v systemctl >/dev/null 2>&1; then echo "systemd";
-        else echo "other"; fi
-      register: env_type
-      changed_when: false
     - name: create default.conf placeholder
       copy:
         dest: /etc/nginx/default.conf
@@ -381,6 +381,14 @@
           block:
             - name: check if nginx is running in Docker
               shell: pgrep nginx >/dev/null 2>&1 && echo "running" || echo "stopped"
+              register: nginx_docker_status
+              changed_when: false
+            - name: reload running nginx in docker
+              command: nginx -s reload
+              when: nginx_docker_status.stdout == "running"
+            - name: Start nginx in Docker if stopped
+              command: nginx
+              when: nginx_docker_status.stdout == "stopped"
     - name: logrotate is installed
       apt:
         name: logrotate
