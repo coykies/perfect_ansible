@@ -72,7 +72,7 @@ CONTAINER ID   IMAGE       COMMAND               CREATED       STATUS       PORT
   vim inventory.ini
 ```
 
-Проверка подключения к хоста 
+Проверка подключения к хостам
 
 ```bash
   ansible all -i inventory -m ping
